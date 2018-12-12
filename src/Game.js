@@ -147,7 +147,7 @@ export default class Game extends EventDispatcher {
       segment =>
         segment.length &&
         new PIXI.Text(segment, {
-          font: "3em Gamja Flower",
+          font: "7em Gamja Flower",
           fill: "orange"
         })
     );
