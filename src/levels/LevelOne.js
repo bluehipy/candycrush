@@ -1,64 +1,50 @@
 import Level from "./Level.js";
-
 export default class LevelOne extends Level {
+  beforeInit() {
+    this.map = [];
+
+    for (let i = 0; i < 8; i++) {
+      this.map[i] = [];
+      for (let j = 0; j < 8; j++) {
+        this.map[i].push(Math.floor(Math.random() * this.textures.length));
+      }
+    }
+
+    this.redCandies = 0;
+    this.blueCandies = 0;
+    this.allowedMoves = 50;
+  }
   init() {
-    return new Promise((resolve, reject) => {
-      const fn = () => {
-        this.codes = "abcdef".split("");
-        this.map = {};
+    Level.prototype.init.call(this);
+    this.game.showMessage("Collect 10 x #0 and 10 x #1", msg => msg.destroy());
+  }
+  renderGoal() {
+    let reds = Math.max(0, 10 - this.redCandies);
+    let blues = Math.max(0, 10 - this.blueCandies);
+    let msg = `${reds} #0 ${blues} #1`;
 
-        let dx = 18;
-        for (let i = 0; i < 6; i++) {
-          let texture = PIXI.loader.resources.candies.texture;
-          let rectangle = new PIXI.Rectangle(
-            i * 94 + dx,
-            191 + dx,
-            94 - dx,
-            94 - dx
-          );
-          this.map[this.codes[i]] = new PIXI.Texture(texture, rectangle);
-        }
-
-        this.data = [
-          "***--------------***",
-          "**----------------**",
-          "*------------------*",
-          "--------------------",
-          "--------****--------",
-          "--------**-**-------",
-          "*-------****-------*",
-          "**----------------**",
-          "***--------------***",
-          "***--------------***"
-        ];
-        resolve();
-      };
-
-      if (!PIXI.loader.resources.candies) {
-        PIXI.loader.add("candies", "candies.png");
-        PIXI.loader.load(() => fn());
-      } else {
-        fn();
+    return this.game.tpl(msg);
+  }
+  onValidMove() {
+    this.setMoves(this.getMoves() + 1);
+  }
+  onCollect(arr) {
+    this.setScore(this.getScore() + arr.length);
+    arr.forEach(pos => {
+      let cell = this.table.model.get(...pos);
+      if (!cell) return;
+      if (cell.code === 0) {
+        this.redCandies++;
+      } else if (cell.code === 1) {
+        this.blueCandies++;
       }
     });
+    this.updateGoal();
   }
-  onStart() {
-    this.score = 0;
-    this.moves = 0;
-    this.startMessage = "Collect 20 red ones in less than 20 moves";
-  }
-  onSwap() {
-    this.moves++;
-  }
-  onEnd() {}
-  onHeartBeat() {}
   successCriteria() {
-    return this.score > 20;
+    return this.redCandies >= 10 && this.blueCandies >= 10;
   }
   failureCriteria() {
-    return this.moves > 20;
-  }
-  onCollect(cells) {
-    cells.forEach(cell => cell.code === "a" && this.score++);
+    return this.getMoves() > this.allowedMoves;
   }
 }

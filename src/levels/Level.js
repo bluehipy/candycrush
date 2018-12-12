@@ -1,62 +1,88 @@
-import Table from "../Table.js";
-export default class Level {
-  constructor(cfg) {
-    Object.assign(this, cfg);
-    this.init().then(() => this.start());
-    return new Promise((resolve, reject) => {
+import EventDispatcher from "../EventDispatcher.js";
+import TableView from "../TableView.js";
+export default class Level extends EventDispatcher {
+  constructor(config) {
+    super();
+    Object.assign(this, config);
+    this.promise = new Promise((resolve, reject) => {
       this.resolve = resolve;
       this.reject = reject;
     });
+    this.setScore(0);
+    this.setMoves(0);
+    this.beforeInit();
+    this.init();
   }
-  init() {}
-  start() {
-    let data = this.data.map(line =>
-      line
-        .split("")
-        .map(
-          c =>
-            c == "-"
-              ? this.codes[Math.floor(Math.random() * this.codes.length)]
-              : c
-        )
-    );
-    this.table = new Table({
-      x: this.x,
-      y: this.y,
-      width: this.width,
-      height: this.height,
-      data: data,
-      map: this.map,
-      cellAnchorX: this.cellAnchorX,
-      cellAnchorY: this.cellAnchorY,
-      disabledCell: "*",
-      onSwap: cells => this.checkTable(cells),
-      addToStage: this.addToStage.bind(this),
-      moveOnTop: this.moveOnTop.bind(this)
+  then(fn) {
+    return this.promise.then(res => fn(res));
+  }
+  catch(fn) {
+    return this.promise.catch(err => fn(err));
+  }
+  init() {
+    let w = Math.min(window.innerWidth, window.innerHeight);
+    let ss = Math.floor(w / 10);
+    let x = Math.floor((window.innerWidth - 8 * ss) / 2);
+    let y = Math.floor((window.innerHeight - 8 * ss) / 2);
+
+    this.table = new TableView({
+      x: x,
+      y: y,
+      cellWidth: ss,
+      cellHeight: ss,
+      game: this.game,
+      textures: this.textures,
+      map: this.map
     });
-    this.started = true;
-    this.unregister = this.registerHeartBeat(this.heartBeat.bind(this));
-    this.onStart();
-    this.startMessage && this.showMessage(this.startMessage);
+    this.addListeners();
   }
-  end() {
-    this.unregister();
-    this.table.destroy();
-    this.ended = true;
-    this.started = false;
-    this.onEnd();
+
+  addListeners() {
+    this.table.on("begincheck", this.onBeginCheck.bind(this));
+    this.table.on("endcheck", this.onEndCheck.bind(this));
+    this.table.on("validmove", this.onValidMove.bind(this));
+    this.table.on("collect", this.onCollect.bind(this));
+    this.game.on("resize", this.resize, this);
   }
-  onStart() {}
-  onEnd() {}
-  onCollect(cells) {}
-  onSwap(cells) {}
-  onHeartBeat() {}
+  removeListeners() {
+    this.table.off("begincheck");
+    this.table.off("endcheck");
+    this.table.off("validmove");
+    this.table.off("collect");
+    this.game.off("resize", this.resize, this);
+  }
+  beforeInit() {}
+  setScore(v) {
+    this.score = v;
+    this.emit("scorechange", v);
+  }
+  getScore() {
+    return this.score;
+  }
+  setMoves(v) {
+    this.moves = v;
+    this.emit("movechange", this.allowedMoves - v);
+  }
+  getMoves() {
+    return this.moves;
+  }
+  getRemainingMoves() {
+    return this.allowedMoves - this.getMoves();
+  }
+  updateGoal() {
+    this.emit("goalchange");
+  }
+  renderGoal() {}
+  onBeginCheck() {}
+  onEndCheck() {
+    this.checkCriterias();
+  }
+  onValidMove() {}
+  onCollect() {}
   successCriteria() {}
   failureCriteria() {}
-  heartBeat() {
+  checkCriterias() {
     if (this.started) {
-      this.table.render();
-      this.onHeartBeat();
       if (this.successCriteria()) {
         this.end();
         this.resolve(true);
@@ -66,108 +92,28 @@ export default class Level {
       }
     }
   }
-  checkTable(cells, swap = true) {
-    let table = this.table;
-    let toCollect = [];
-    cells.forEach(cell => {
-      let collects = this.checkColumn(cell);
-      if (collects.length >= 3) {
-        toCollect = toCollect.concat(
-          collects.filter(c => toCollect.indexOf(c) === -1)
-        );
-      }
+  start() {
+    this.started = true;
+  }
+  end() {
+    this.started = false;
+  }
+  resize(w, h) {
+    console.log(`${w} x ${h}`);
+    let d = Math.min(w, h);
+    let ss = Math.floor(d / 10);
+    let th = this.map.length * ss;
+    let tw = this.map[0].length * ss;
 
-      collects = this.checkRow(cell);
-
-      if (collects.length >= 3) {
-        toCollect = toCollect.concat(
-          collects.filter(c => toCollect.indexOf(c) === -1)
-        );
-      }
-    });
-    if (toCollect.length) {
-      if (swap) {
-        this.onSwap(cells);
-      }
-      table.collect(toCollect).then(() => {
-        this.onCollect(toCollect);
-        this.fillGaps(toCollect).then(arr =>
-          this.checkTable(arr.map(o => table.cells[o.row][o.col]), false)
-        );
-      });
-    } else {
-      swap && table.swap(...cells);
+    if (this.table) {
+      this.table.x = Math.floor((w - tw) / 2);
+      this.table.y = Math.floor((h - th) / 2);
+      this.table.resize(ss, ss);
     }
   }
-
-  fillGaps(toCollect) {
-    let table = this.table;
-
-    return new Promise((resolve, reject) => {
-      let cells = toCollect.map(cell => table.cells[cell.row][cell.col]);
-      let changed = false;
-      cells.every((cell, index) => {
-        let ghost = toCollect[index],
-          neighnour = table.up(ghost);
-        if (
-          !cell &&
-          (ghost.row === 0 || table.data[ghost.row - 1][ghost.col] === "*")
-        ) {
-          neighnour = table.createCell(
-            this.codes[Math.floor(Math.random() * this.codes.length)],
-            ghost.row,
-            ghost.col
-          );
-        }
-        if (!cell && neighnour) {
-          let row = neighnour.row,
-            col = neighnour.col,
-            code = neighnour.code;
-          table
-            .moveCellTo(neighnour, ghost.row, ghost.col, 2)
-            .then(neighnour => {
-              table.set(row, col, null, false);
-              table.set(ghost.row, ghost.col, neighnour, false);
-
-              let newToCollect = toCollect.slice();
-              newToCollect.push({ row: row, col: col, code: code });
-              //newToCollect.splice(index, 1);
-              resolve(this.fillGaps(newToCollect));
-            });
-          changed = true;
-          return false;
-        }
-        return true;
-      });
-      if (!changed) {
-        resolve(toCollect);
-      }
-    });
-  }
-  checkColumn(cell) {
-    let code = cell.code,
-      tmp = cell,
-      collects = [cell];
-    while ((tmp = this.table.up(tmp)) && tmp.code === code) {
-      collects.push(tmp);
-    }
-    tmp = cell;
-    while ((tmp = this.table.down(tmp)) && tmp.code === code) {
-      collects.push(tmp);
-    }
-    return collects;
-  }
-  checkRow(cell) {
-    let code = cell.code,
-      tmp = cell,
-      collects = [cell];
-    while ((tmp = this.table.right(tmp)) && tmp.code === code) {
-      collects.push(tmp);
-    }
-    tmp = cell;
-    while ((tmp = this.table.left(tmp)) && tmp.code === code) {
-      collects.push(tmp);
-    }
-    return collects;
+  destroy() {
+    this.removeListeners();
+    this.table.destroy();
+    delete this.table;
   }
 }

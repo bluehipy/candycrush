@@ -1,147 +1,203 @@
-export default class Gmae extends PIXI.Application {
+import EventDispatcher from "./EventDispatcher.js";
+import EvolutionMap from "./EvolutionMap.js";
+import TopBar from "./TopBar.js";
+import OverlayMsg from "./OverlayMsg.js";
+export default class Game extends EventDispatcher {
   constructor(config) {
-    super(config);
-    let cfg = Object.assign({}, config);
-    Object.assign(this, cfg);
-    this.gameInit();
+    super();
+    Object.assign(this, config);
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+    this.init();
   }
-  gameInit() {
-    this.heartBeats = [];
+  init() {
     this.levelIndex = 0;
-    if (this.levels && this.levels.length) {
-      this.gameRun();
-    }
-    this.ticker.add(() => this.heartBeat());
-  }
-  registerHeartBeat(fn) {
-    this.heartBeats.push(fn);
-    const unregister = index => (this.heartBeats[index] = null);
-
-    return unregister.bind(this, this.heartBeats.length - 1);
-  }
-  heartBeat() {
-    this.heartBeats.forEach(fn => fn && fn());
-  }
-  gameRun() {
-    this.showMap().then(levelIndex => {
-      this.levelIndex = levelIndex;
-      this.initLevel();
+    this.loadingTxt = new PIXI.Text("Loading ...", {
+      font: "3em Gamja Flower",
+      fill: "orange",
+      align: "center"
     });
+    this.app.stage.addChild(this.loadingTxt);
+    this.loadingTxt.x = (this.width - this.loadingTxt.width) / 2;
+    this.loadingTxt.y = (this.height - this.loadingTxt.height) / 2;
+    PIXI.loader
+      .add("map", "map.jpg")
+      .add("candysheet", "./candies.json")
+      .add("girlsheet", "./girl.json")
+      .load(this.onAssetsLoaded.bind(this));
+  }
+  onAssetsLoaded(loader, resources) {
+    let textures = [],
+      fatures = [],
+      i;
+
+    this.loadingTxt.destroy();
+    delete this.loadingTxt;
+    this.mapTexture = resources.map.texture;
+
+    for (i = 0; i < 6; i++) {
+      var framekey = "candy " + i;
+      var texture = PIXI.Texture.fromFrame(framekey);
+      textures.push(texture);
+    }
+    for (i = 0; i < 3; i++) {
+      var framekey = "girl " + i;
+      var texture = PIXI.Texture.fromFrame(framekey);
+      fatures.push(texture);
+    }
+    this.textures = textures;
+    this.fatures = fatures;
+    this.showMessage(
+      "Let's crash some candies!",
+      msg => {
+        msg.destroy();
+        this.run();
+      },
+      0
+    );
+  }
+  run() {
+    this.status && this.status.destroy();
+    this.showMap();
   }
   initLevel() {
     let levelClass = this.levels[this.levelIndex];
 
     this.currentLevel = new levelClass({
-      x: 10,
-      y: 10,
-      width: this.view.width - 20,
-      height: this.view.height - 20,
-      cellAnchorX: 0.5,
-      cellAnchorY: 0.5,
-      addToStage: this.gameAddToStage.bind(this),
-      moveOnTop: this.gameMoveOnTop.bind(this),
-      registerHeartBeat: this.registerHeartBeat.bind(this),
-      showMessage: this.showMessage.bind(this)
+      game: this,
+      textures: this.textures
     });
+
+    this.status = new TopBar({
+      game: this,
+      level: this.currentLevel,
+      w: this.width,
+      h: this.height
+    });
+
+    this.app.stage.addChild(this.status);
+
     this.currentLevel
       .then(level => {
-        this.showMessage("Well done!", () => {
-          this.levelIndex++;
-          this.gameRun();
-        });
+        this.currentLevel.destroy();
+        this.showMessage(
+          "Well done!",
+          msg => {
+            msg.destroy();
+            this.levelIndex++;
+            this.run();
+          },
+          2
+        );
       })
       .catch(level => {
-        this.showMessage("Sorry, you have failed!", () => {
-          this.gameRun();
-        });
+        this.currentLevel.destroy();
+        this.showMessage(
+          "Sorry, you have failed!",
+          msg => {
+            msg.destroy();
+            this.run();
+          },
+          1
+        );
       });
+    this.currentLevel.start();
   }
+  showMessage(msg, cb = null, emotion = 0) {
+    if (typeof msg === "string") {
+      msg = this.tpl(msg);
+    }
+    let girl = new PIXI.Sprite(this.fatures[emotion]);
+    girl.width = msg.width / 2;
+    girl.scale.y = girl.scale.x;
+    let girlMsg = new PIXI.Container();
+    girlMsg.addChild(girl);
+    girlMsg.addChild(msg);
+    girl.x = (msg.width - girl.width) / 2;
+    msg.y = girl.height + msg.height / 2;
 
-  gameAddToStage(sprite) {
-    this.stage.addChild(sprite);
+    let container = new OverlayMsg(
+      girlMsg,
+      window.innerWidth,
+      window.innerHeight
+    );
+    this.on("resize", (w, h) => container.redraw(w, h));
+
+    if (cb) {
+      container.interactive = true;
+      container.on("mousedown", () => cb(container));
+      container.on("tap", () => cb(container));
+    }
+    this.app.stage.addChild(container);
   }
-  gameMoveOnTop(child, index) {
-    this.stage.setChildIndex(child, this.stage.children.length - 1);
-  }
-  showMessage(msg, cb = false) {
-    let container = new PIXI.Container();
-    container.interactive = true;
+  tpl(msg) {
+    const re = /(#\d+?)/g;
+    const separator = "##$$$";
+    let out = [];
+    let result = [];
+    const replacer = (match, p, offset, s) => {
+      out.push(match.substr(1));
+      return separator;
+    };
 
-    let bg = new PIXI.Graphics(true);
-    bg.beginFill(0x000000, 0.8);
-    bg.drawRect(0, 0, this.view.width, this.view.height);
-    bg.endFill();
-
-    let text = new PIXI.Text(msg, {
-      font: "3em Pacifico",
-      fill: "white"
-    });
-    text.x = (this.view.width - text.width) / 2;
-    text.y = (this.view.height - text.height) / 2;
-    container.addChild(bg);
-    container.addChild(text);
-
-    this.stage.addChild(container);
-
-    container.once("mousedown", () => {
-      container.destroy();
-      cb && cb();
-    });
-    container.once("tap", () => {
-      container.destroy();
-      cb && cb();
-    });
-  }
-  showMap() {
-    return new Promise((resolve, reject) => {
-      const fn = i => {
-          this.stage.removeChildren(0, this.stage.children.length - 1);
-          resolve(i);
-        },
-        drawMap = () => {
-          let mapSprite = new PIXI.Sprite(PIXI.loader.resources.map.texture);
-          this.stage.addChild(mapSprite);
-
-          if (mapSprite.width > this.view.width) {
-            mapSprite.width = this.view.width;
-            mapSprite.scale.y = mapSprite.scale.x;
-          }
-          if (mapSprite.height > this.view.height) {
-            mapSprite.height = this.view.height;
-            mapSprite.scale.x = mapSprite.scale.y;
-          }
-          mapSprite.x = (this.view.width - mapSprite.width) / 2;
-          mapSprite.y = (this.view.height - mapSprite.height) / 2;
-          const lvlWidth = mapSprite.width / 10;
-          const lvls = [[523, 301], [480, 180]];
-
-          lvls.forEach((lvl, index) => {
-            let x = lvl[0] * mapSprite.scale.x,
-              y = lvl[1] * mapSprite.scale.y;
-            let circle = new PIXI.Graphics(true);
-            if (index <= this.levelIndex) {
-              circle.beginFill(0xff0000, 0.4);
-              circle.on("mousedown", fn.bind(null, index));
-              circle.on("tap", fn.bind(null, index));
-              circle.interactive = true;
-            } else {
-              circle.beginFill(0x000000, 0.4);
-            }
-            circle.drawCircle(lvlWidth / 2, lvlWidth / 2, lvlWidth / 2);
-            circle.endFill();
-
-            circle.x = mapSprite.x + x;
-            circle.y = mapSprite.y + y;
-            this.stage.addChild(circle);
-          });
-        };
-
-      if (!PIXI.loader.resources.map) {
-        PIXI.loader.add("map", "map.png");
-        PIXI.loader.load((loader, resources) => drawMap());
-      } else {
-        drawMap();
+    let s = msg.replace(re, replacer);
+    out = out.map(code => new PIXI.Sprite(this.textures[code]));
+    s = s.split(separator);
+    s = s.map(
+      segment =>
+        segment.length &&
+        new PIXI.Text(segment, {
+          font: "3em Gamja Flower",
+          fill: "orange"
+        })
+    );
+    let h = 0;
+    s.forEach((segment, index) => {
+      segment && result.push(segment);
+      h = Math.max(h, segment.height);
+      let img;
+      if ((img = out[index])) {
+        result.push(img);
+        img.height = h;
+        img.scale.x = img.scale.y;
+        img.y = img.height / 5;
       }
     });
+    let container = new PIXI.Container();
+    let lastX = 0;
+    result.map((r, index) => {
+      if (r) {
+        r.x = lastX;
+        lastX += r.width;
+      }
+      r && container.addChild(r);
+      return r;
+    });
+    return container;
+  }
+  showMap() {
+    let map = new EvolutionMap({
+      texture: this.mapTexture,
+      w: this.width,
+      h: this.height,
+      currentLevel: this.levelIndex,
+      levels: [[475, 1240], [725, 1115], [295, 710]]
+    });
+    this.app.stage.addChild(map);
+    this.evolutionMap = map;
+    map.then(index => {
+      this.levelIndex = index;
+      this.evolutionMap.destroy();
+      delete this.evolutionMap;
+      this.initLevel();
+    });
+  }
+  resize(w, h) {
+    this.width = w;
+    this.height = h;
+    if (this.evolutionMap) {
+      this.evolutionMap.redraw(w, h);
+    }
+    this.emit("resize", w, h);
   }
 }

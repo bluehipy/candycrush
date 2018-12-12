@@ -1,15 +1,15 @@
 import Level from "./Level.js";
-export default class LevelTwo extends Level {
+export default class LevelThree extends Level {
   beforeInit() {
     this.map = [
-      [0, 1, 2, 3, 4, 5, 0, 1],
-      [0, 0, 1, 1, 0, 0, 2, 2],
+      [null, 1, null, null, null, null, 0, null],
+      [0, 0, 1, null, null, 1, 2, 2],
       [1, 1, 2, 2, 1, 1, 3, 3],
-      [1, 1, 2, null, null, 1, 3, 3],
-      [1, 1, 2, null, null, 1, 3, 3],
-      [1, 1, 2, 2, 1, 1, 3, 3],
-      [0, 0, 1, 1, 0, 0, 2, 2],
-      [0, 1, 2, 3, 4, 5, 0, 1]
+      [1, 1, 2, 3, 1, 1, 3, 3],
+      [1, 1, 2, 0, 0, 1, 3, 3],
+      [null, 1, 2, 2, 1, 1, 3, null],
+      [null, null, 1, 1, 0, 0, null, null],
+      [null, null, null, 3, 4, null, null, null]
     ];
 
     this.redCandies = 0;

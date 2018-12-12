@@ -1,6 +1,7 @@
 import Game from "./src/Game.js";
 import LevelOne from "./src/levels/LevelOne.js";
 import LevelTwo from "./src/levels/LevelTwo.js";
+import LevelThree from "./src/levels/LevelThree.js";
 
 if (!Math.sgn) {
   Math.sgn = v => {
@@ -10,28 +11,36 @@ if (!Math.sgn) {
     return v / Math.abs(v);
   };
 }
-
-const app = new Game({
+const app = new PIXI.Application({
   autoResize: true,
-  width: window.innerWidth - 2,
-  height: window.innerHeight - 2,
+  width: window.innerWidth,
+  height: window.innerHeight,
   antialias: true, // default: false
   transparent: false, // default: false
   resolution: 1, // default: 1
-  backgroundColor: 0x000000,
-  levels: [LevelOne, LevelTwo]
+  backgroundColor: 0x000000
 });
-window.app = app;
-// The application will create a canvas element for you that you
-// can then insert into the DOM
-
-document.body.appendChild(app.view);
-const parent = app.view.parentNode;
-app.renderer.resize(parent.clientWidth, parent.clientHeight);
-
-function resize() {
-  app.renderer.resize(window.innerWidth - 2, window.innerHeight - 2);
-}
-window.addEventListener("resize", resize);
-
-resize();
+WebFont.load({
+  google: {
+    families: ["Gamja Flower"]
+  },
+  active: function() {
+    document.body.appendChild(app.view);
+    let game = new Game({
+      app: app,
+      levels: [LevelOne, LevelTwo, LevelThree]
+    });
+    window.addEventListener("resize", () => {
+      let w, h;
+      if (window) {
+        w = window.innerWidth;
+        h = window.innerHeight;
+      } else {
+        w = app.view.parentNode.offsetWidth;
+        h = app.view.parentNode.offsetHeight;
+      }
+      app.renderer.resize(w, h);
+      game.resize(w, h);
+    });
+  }
+});

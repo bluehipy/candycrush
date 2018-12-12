@@ -1,0 +1,34 @@
+{
+  "frames": {
+    "girl 0": {
+      "frame": { "x": 0, "y": 0, "w": 254, "h": 296 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 254, "h": 296 },
+      "sourceSize": { "w": 254, "h": 296 },
+      "duration": 0
+    },
+    "girl 1": {
+      "frame": { "x": 254, "y": 0, "w": 254, "h": 296 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 254, "h": 296 },
+      "sourceSize": { "w": 254, "h": 296 },
+      "duration": 0
+    },
+    "girl 2": {
+      "frame": { "x": 508, "y": 0, "w": 254, "h": 296 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 254, "h": 296 },
+      "sourceSize": { "w": 254, "h": 296 },
+      "duration": 0
+    }
+  },
+  "meta": {
+    "image": "girl.png",
+    "format": "RGBA8888",
+    "size": { "w": 763, "h": 296 },
+    "scale": "1"
+  }
+}
