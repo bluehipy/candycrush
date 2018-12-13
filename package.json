@@ -1,7 +1,6 @@
 {
   "name": "candycrush",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
     "start": "npm run open",
@@ -13,5 +12,18 @@
   "license": "ISC",
   "dependencies": {
     "pixi.js": "^4.8.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluehipy/candycrush.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bluehipy/candycrush/issues"
+  },
+  "homepage": "https://github.com/bluehipy/candycrush#readme",
+  "description": "",
+  "devDependencies": {
+    "webpack": "^4.27.1",
+    "webpack-cli": "^3.1.2"
   }
 }
