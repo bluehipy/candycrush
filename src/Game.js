@@ -17,9 +17,9 @@ export default class Game extends EventDispatcher {
     this.showLoading();
 
     PIXI.loader
-      .add("map", "./assets/map.jpg")
-      .add("candysheet", "./assets/candies.json")
-      .add("girlsheet", "./assets/girl.json")
+      .add("map", "src/assets/map.jpg")
+      .add("candysheet", "src/assets/candies.json")
+      .add("girlsheet", "src/assets/girl.json")
       .load(this.onAssetsLoaded.bind(this));
   }
   showLoading() {
