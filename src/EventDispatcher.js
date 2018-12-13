@@ -14,7 +14,7 @@ export default class EventDispatcher extends PIXI.utils.EventEmitter {
   }
   emit() {
     if (!this.isSuspended()) {
-      PIXI.utils.EventEmitter.prototype.emit.apply(this, arguments);
+      super.emit.apply(this, arguments);
     }
   }
 }

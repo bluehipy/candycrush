@@ -11,6 +11,7 @@ if (!Math.sgn) {
     return v / Math.abs(v);
   };
 }
+
 const app = new PIXI.Application({
   autoResize: true,
   width: window.innerWidth,
@@ -20,6 +21,11 @@ const app = new PIXI.Application({
   resolution: 1, // default: 1
   backgroundColor: 0x000000
 });
+window.Renderer = {
+  add: child => app.stage.addChild(child),
+  setZIndex: (child, zIndex) => app.stage.setChildIndex(child, zIndex),
+  maxZIndex: () => app.stage.children.length - 1
+};
 WebFont.load({
   google: {
     families: ["Gamja Flower"]

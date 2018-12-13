@@ -12,24 +12,22 @@ export default class TopBar extends PIXI.Container {
     this.redraw(this.w, this.h);
   }
   addListeners() {
-    this.level.on("scorechange", this.redraw, this);
-    this.level.on("moveschange", this.redraw, this);
-    this.level.on("goalchange", this.redraw, this);
-    this.game.on("resize", this.resize, this);
+    this.level.on("scorechange", this.onChange, this);
+    this.level.on("moveschange", this.onChange, this);
+    this.level.on("goalchange", this.onChange, this);
   }
   removeListeners() {
-    this.level.off("scorechange", this.redraw, this);
-    this.level.off("moveschange", this.redraw, this);
-    this.level.off("goalchange", this.redraw, this);
-    this.game.off("resize", this.resize, this);
+    this.level.off("scorechange", this.onChange, this);
+    this.level.off("moveschange", this.onChange, this);
+    this.level.off("goalchange", this.onChange, this);
   }
-  redraw() {
+  onChange() {
     this.score && this.score.destroy();
     this.moves && this.moves.destroy();
     this.goal && this.goal.destroy();
     //score sprite
     this.score = new PIXI.Text("score \n" + this.level.getScore(), {
-      font: "3em Gamja Flower",
+      font: "7em Gamja Flower",
       fill: "orange",
       align: "center"
     });
@@ -37,23 +35,23 @@ export default class TopBar extends PIXI.Container {
 
     // remanining moves
     this.moves = new PIXI.Text("moves \n" + this.level.getRemainingMoves(), {
-      font: "3em Gamja Flower",
+      font: "7em Gamja Flower",
       fill: "orange",
       align: "center"
     });
-    this.moves.x = 5;
+    this.moves.x = 15;
 
     //goal sprite
     this.goal = this.level.renderGoal();
-    this.goal.x = (this.game.app.view.width - this.goal.width) / 2;
+    this.goal.x = (this.w - this.goal.width) / 2;
     this.addChild(this.moves);
     this.addChild(this.score);
     this.addChild(this.goal);
   }
-  resize(w, h) {
+  redraw(w, h) {
     this.w = w;
     this.h = h;
-    this.redraw();
+    this.onChange();
   }
   destroy() {
     this.removeListeners();

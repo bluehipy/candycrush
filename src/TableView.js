@@ -46,7 +46,7 @@ export default class TableView extends EventDispatcher {
       })
     );
     this.bg = container;
-    this.game.app.stage.addChild(container);
+    Renderer.add(container);
   }
   getX(col) {
     return this.x + this.cellWidth * (0.5 + col);
@@ -63,12 +63,12 @@ export default class TableView extends EventDispatcher {
     c.lock = this.lock.bind(this);
     c.unlock = this.unlock.bind(this);
     this.controller.registerCell(c);
-    this.game.app.stage.addChild(c);
+    Renderer.add(c);
     return c;
   }
   swap(objA, objB) {
-    let zIndex = this.game.app.stage.children.length - 1;
-    this.game.app.stage.setChildIndex(objA, zIndex);
+    let zIndex = Renderer.maxZIndex();
+    Renderer.setZIndex(objA, zIndex);
     return Promise.all([
       new Animation({
         actor: objA,
@@ -138,21 +138,21 @@ export default class TableView extends EventDispatcher {
   isLocked() {
     return this.lockCount > 0;
   }
-  resize(w, h) {
+  redraw(w, h) {
     this.cellWidth = w;
     this.cellHeight = h;
     if (this.isLocked()) {
-      this.onUnlock = this.resize.bind(this, w, h);
+      this.onUnlock = this.redraw.bind(this, w, h);
     } else {
       // this is way too radical
       this.bg.destroy();
       this.drawBg();
-      this.game.app.stage.setChildIndex(this.bg, 0);
+      Renderer.setZIndex(this.bg, 0);
       this.model.each((row, col, cell) => {
         if (cell) {
           cell.x = this.getX(col);
           cell.y = this.getY(row);
-          cell.my_resize(w, h);
+          cell.redraw(w, h);
         }
         return true;
       });

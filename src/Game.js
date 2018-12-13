@@ -1,6 +1,6 @@
 import EventDispatcher from "./EventDispatcher.js";
 import EvolutionMap from "./EvolutionMap.js";
-import TopBar from "./TopBar.js";
+
 import OverlayMsg from "./OverlayMsg.js";
 export default class Game extends EventDispatcher {
   constructor(config) {
@@ -8,31 +8,40 @@ export default class Game extends EventDispatcher {
     Object.assign(this, config);
     this.width = window.innerWidth;
     this.height = window.innerHeight;
+    Renderer.tpl = this.tpl.bind(this);
+    Renderer.showMessage = this.showMessage.bind(this);
     this.init();
   }
   init() {
     this.levelIndex = 0;
-    this.loadingTxt = new PIXI.Text("Loading ...", {
-      font: "3em Gamja Flower",
-      fill: "orange",
-      align: "center"
-    });
-    this.app.stage.addChild(this.loadingTxt);
-    this.loadingTxt.x = (this.width - this.loadingTxt.width) / 2;
-    this.loadingTxt.y = (this.height - this.loadingTxt.height) / 2;
+    this.showLoading();
+
     PIXI.loader
       .add("map", "map.jpg")
       .add("candysheet", "./candies.json")
       .add("girlsheet", "./girl.json")
       .load(this.onAssetsLoaded.bind(this));
   }
+  showLoading() {
+    this.loadingTxt = new PIXI.Text("Loading ...", {
+      font: "3em Gamja Flower",
+      fill: "orange",
+      align: "center"
+    });
+    Renderer.add(this.loadingTxt);
+    this.loadingTxt.x = (this.width - this.loadingTxt.width) / 2;
+    this.loadingTxt.y = (this.height - this.loadingTxt.height) / 2;
+  }
+  hideLoading() {
+    this.loadingTxt.destroy();
+    delete this.loadingTxt;
+  }
   onAssetsLoaded(loader, resources) {
     let textures = [],
       fatures = [],
       i;
 
-    this.loadingTxt.destroy();
-    delete this.loadingTxt;
+    this.hideLoading();
     this.mapTexture = resources.map.texture;
 
     for (i = 0; i < 6; i++) {
@@ -57,25 +66,16 @@ export default class Game extends EventDispatcher {
     );
   }
   run() {
-    this.status && this.status.destroy();
     this.showMap();
   }
   initLevel() {
     let levelClass = this.levels[this.levelIndex];
 
     this.currentLevel = new levelClass({
-      game: this,
-      textures: this.textures
-    });
-
-    this.status = new TopBar({
-      game: this,
-      level: this.currentLevel,
+      textures: this.textures,
       w: this.width,
       h: this.height
     });
-
-    this.app.stage.addChild(this.status);
 
     this.currentLevel
       .then(level => {
@@ -108,19 +108,18 @@ export default class Game extends EventDispatcher {
       msg = this.tpl(msg);
     }
     let girl = new PIXI.Sprite(this.fatures[emotion]);
-    girl.width = msg.width / 2;
-    girl.scale.y = girl.scale.x;
+    if (girl.width > this.width) {
+      girl.width = this.width;
+      girl.scale.y = girl.scale.x;
+    }
+
     let girlMsg = new PIXI.Container();
     girlMsg.addChild(girl);
     girlMsg.addChild(msg);
     girl.x = (msg.width - girl.width) / 2;
     msg.y = girl.height + msg.height / 2;
 
-    let container = new OverlayMsg(
-      girlMsg,
-      window.innerWidth,
-      window.innerHeight
-    );
+    let container = new OverlayMsg(girlMsg, this.width, this.height);
     this.on("resize", (w, h) => container.redraw(w, h));
 
     if (cb) {
@@ -128,7 +127,7 @@ export default class Game extends EventDispatcher {
       container.on("mousedown", () => cb(container));
       container.on("tap", () => cb(container));
     }
-    this.app.stage.addChild(container);
+    Renderer.add(container);
   }
   tpl(msg) {
     const re = /(#\d+?)/g;
@@ -183,7 +182,7 @@ export default class Game extends EventDispatcher {
       currentLevel: this.levelIndex,
       levels: [[475, 1240], [725, 1115], [295, 710]]
     });
-    this.app.stage.addChild(map);
+    Renderer.add(map);
     this.evolutionMap = map;
     map.then(index => {
       this.levelIndex = index;
@@ -197,6 +196,9 @@ export default class Game extends EventDispatcher {
     this.height = h;
     if (this.evolutionMap) {
       this.evolutionMap.redraw(w, h);
+    }
+    if (this.currentLevel) {
+      this.currentLevel.redraw(w, h);
     }
     this.emit("resize", w, h);
   }

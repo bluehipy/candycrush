@@ -1,7 +1,7 @@
 {
   "frames": {
     "girl 0": {
-      "frame": { "x": 0, "y": 0, "w": 254, "h": 296 },
+      "frame": { "x": 0, "y": 0, "w": 250, "h": 296 },
       "rotated": false,
       "trimmed": false,
       "spriteSourceSize": { "x": 0, "y": 0, "w": 254, "h": 296 },

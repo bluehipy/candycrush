@@ -1,4 +1,5 @@
 import EventDispatcher from "../EventDispatcher.js";
+import TopBar from "../TopBar.js";
 import TableView from "../TableView.js";
 export default class Level extends EventDispatcher {
   constructor(config) {
@@ -20,17 +21,27 @@ export default class Level extends EventDispatcher {
     return this.promise.catch(err => fn(err));
   }
   init() {
-    let w = Math.min(window.innerWidth, window.innerHeight);
-    let ss = Math.floor(w / 10);
-    let x = Math.floor((window.innerWidth - 8 * ss) / 2);
-    let y = Math.floor((window.innerHeight - 8 * ss) / 2);
+    let w = this.w;
+    let h = this.h;
+
+    this.status = new TopBar({
+      level: this,
+      w: w,
+      h: h
+    });
+
+    Renderer.add(this.status);
+    h -= this.status.height;
+    let d = Math.min(w, h);
+    let ss = Math.floor(d / Math.max(this.map.length, this.map[0].length));
+    let th = this.map.length * ss;
+    let tw = this.map[0].length * ss;
 
     this.table = new TableView({
-      x: x,
-      y: y,
+      x: Math.floor((w - tw) / 2),
+      y: this.status.height + Math.floor((h - th) / 2),
       cellWidth: ss,
       cellHeight: ss,
-      game: this.game,
       textures: this.textures,
       map: this.map
     });
@@ -42,14 +53,12 @@ export default class Level extends EventDispatcher {
     this.table.on("endcheck", this.onEndCheck.bind(this));
     this.table.on("validmove", this.onValidMove.bind(this));
     this.table.on("collect", this.onCollect.bind(this));
-    this.game.on("resize", this.resize, this);
   }
   removeListeners() {
     this.table.off("begincheck");
     this.table.off("endcheck");
     this.table.off("validmove");
     this.table.off("collect");
-    this.game.off("resize", this.resize, this);
   }
   beforeInit() {}
   setScore(v) {
@@ -98,21 +107,28 @@ export default class Level extends EventDispatcher {
   end() {
     this.started = false;
   }
-  resize(w, h) {
-    console.log(`${w} x ${h}`);
-    let d = Math.min(w, h);
-    let ss = Math.floor(d / 10);
-    let th = this.map.length * ss;
-    let tw = this.map[0].length * ss;
+  redraw(w, h) {
+    this.w = w;
+    this.h = h;
+    if (this.status) {
+      this.status.redraw(w, h);
+      h -= this.status.height;
+      let d = Math.min(w, h);
+      let ss = Math.floor(d / Math.max(this.map.length, this.map[0].length));
+      let th = this.map.length * ss;
+      let tw = this.map[0].length * ss;
 
-    if (this.table) {
-      this.table.x = Math.floor((w - tw) / 2);
-      this.table.y = Math.floor((h - th) / 2);
-      this.table.resize(ss, ss);
+      if (this.table) {
+        this.table.x = Math.floor((w - tw) / 2);
+        this.table.y = this.status.height + Math.floor((h - th) / 2);
+        this.table.redraw(ss, ss);
+      }
     }
   }
   destroy() {
     this.removeListeners();
+    this.status.destroy();
+    delete this.status;
     this.table.destroy();
     delete this.table;
   }

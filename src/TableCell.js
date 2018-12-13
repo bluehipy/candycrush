@@ -10,7 +10,7 @@ export default class TableCell extends PIXI.Container {
     this.interactive = true;
     this.on("touchstart", this.onCellDragStart.bind(this));
     this.on("mousedown", this.onCellDragStart.bind(this));
-    this.my_resize(w, h);
+    this.redraw(w, h);
   }
   onCellDragStart(e) {
     this.startX = e.data.global.x;
@@ -42,7 +42,7 @@ export default class TableCell extends PIXI.Container {
       }
     }
   }
-  my_resize(w, h) {
+  redraw(w, h) {
     let sprite = this.children[0];
     sprite.width = w;
     sprite.scale.y = sprite.scale.x;

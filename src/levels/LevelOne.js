@@ -16,14 +16,14 @@ export default class LevelOne extends Level {
   }
   init() {
     Level.prototype.init.call(this);
-    this.game.showMessage("Collect 10 x #0 and 10 x #1", msg => msg.destroy());
+    Renderer.showMessage("Collect 10 x #0 and 10 x #1", msg => msg.destroy());
   }
   renderGoal() {
     let reds = Math.max(0, 10 - this.redCandies);
     let blues = Math.max(0, 10 - this.blueCandies);
     let msg = `${reds} #0 ${blues} #1`;
 
-    return this.game.tpl(msg);
+    return Renderer.tpl(msg);
   }
   onValidMove() {
     this.setMoves(this.getMoves() + 1);
