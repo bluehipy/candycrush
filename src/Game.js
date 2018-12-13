@@ -24,7 +24,6 @@ export default class Game extends EventDispatcher {
   }
   showLoading() {
     this.loadingTxt = new PIXI.Text("Loading ...", {
-      font: "3em Gamja Flower",
       fill: "orange",
       align: "center"
     });
