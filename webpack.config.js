@@ -13,6 +13,10 @@ module.exports = {
         from: "src/assets/",
         to: "./src/assets",
         toType: "dir"
+      },
+      {
+        from: "favicon.ico",
+        to: "./favicon.ico"
       }
     ])
   ]
