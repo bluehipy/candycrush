@@ -35,6 +35,7 @@ http
 
     fs.readFile(filePath, function(error, content) {
       if (error) {
+        console.log("NOT OK", error);
         if (error.code == "ENOENT") {
           fs.readFile("./404.html", function(error, content) {
             response.writeHead(200, { "Content-Type": contentType });
@@ -50,6 +51,7 @@ http
           response.end();
         }
       } else {
+        console.log("OK");
         response.writeHead(200, { "Content-Type": contentType });
         response.end(content, "utf-8");
       }
